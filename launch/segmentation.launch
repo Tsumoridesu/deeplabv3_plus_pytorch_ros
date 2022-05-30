@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <!-- deeplabv3_plus_pytorch Options -->
+    <arg name="dataset"	                    default="cityscapes"/>
+    <arg name="model"	                    default="deeplabv3plus_mobilenet"/>
+    <arg name="separable_conv"	            default="False"/>
+    <arg name="output_stride"	            default="16"/>
+    <arg name="ckpt"	                    default="$(find deeplabv3_plus_pytorch_ros)/cheak_points/best_deeplabv3plus_mobilenet_cityscapes_os16.pth"/>
+
+    <!-- Publish,Subscribe topics -->
+    <arg name="image_subscribe_topic"	    default="/camera/image_raw"/>
+    <arg name="image_publish_topic"         default="Segmentation_image"/>
+
+    <!-- Node -->
+    <node name="Segmentation" pkg="deeplabv3_plus_pytorch_ros" type="predict_for_camera.py" output="screen" respawn="true">
+        <param name="dataset"               value="$(arg dataset)"/>
+        <param name="model"                 value="$(arg model)"/>
+        <param name="separable_conv"        value="$(arg separable_conv)"/>
+        <param name="output_stride"         value="$(arg output_stride)"/>
+        <param name="ckpt"                  value="$(arg ckpt)"/>
+        <param name="image_subscribe_topic" value="$(arg image_subscribe_topic)"/>
+        <param name="image_publish_topic"   value="$(arg image_publish_topic)"/>
+
+    </node>
+</launch>
