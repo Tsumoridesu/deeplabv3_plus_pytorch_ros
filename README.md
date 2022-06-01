@@ -46,6 +46,7 @@ Cityscapesの場合 : ```cityscapes```
 好きのモデルを選択すればいい
 
 #### ckpt：
+Pascal VOC2012 Aug：
 | Model                   | Batch Size | FLOPs | train/val OS | mIoU  |                                               Dropbox                                                |                Tencent Weiyun                 | 
 |:------------------------|:----------:|:-----:|:------------:|:-----:|:----------------------------------------------------------------------------------------------------:|:---------------------------------------------:|
 | DeepLabV3-MobileNet     |     16     | 6.0G  |    16/16     | 0.701 |   [Download](https://www.dropbox.com/s/uhksxwfcim3nkpo/best_deeplabv3_mobilenet_voc_os16.pth?dl=0)   | [Download](https://share.weiyun.com/A4ubD1DD) |
@@ -54,6 +55,13 @@ Cityscapesの場合 : ```cityscapes```
 | DeepLabV3Plus-MobileNet |     16     | 17.0G |    16/16     | 0.711 | [Download](https://www.dropbox.com/s/0idrhwz6opaj7q4/best_deeplabv3plus_mobilenet_voc_os16.pth?dl=0) | [Download](https://share.weiyun.com/djX6MDwM) |
 | DeepLabV3Plus-ResNet50  |     16     | 62.7G |    16/16     | 0.772 | [Download](https://www.dropbox.com/s/dgxyd3jkyz24voa/best_deeplabv3plus_resnet50_voc_os16.pth?dl=0)  | [Download](https://share.weiyun.com/uTM4i2jG) |
 | DeepLabV3Plus-ResNet101 |     16     | 83.4G |    16/16     | 0.783 | [Download](https://www.dropbox.com/s/bm3hxe7wmakaqc5/best_deeplabv3plus_resnet101_voc_os16.pth?dl=0) | [Download](https://share.weiyun.com/UNPZr3dk) |
+
+Cityscapes：
+|  Model          | Batch Size  | FLOPs  | train/val OS   |  mIoU        | Dropbox  |  Tencent Weiyun  |
+| :--------        | :-------------: | :----:   | :-----------: | :--------: | :--------: |  :----:   |
+| DeepLabV3Plus-MobileNet   | 16      |  135G      |  16/16   |  0.721  |    [Download](https://www.dropbox.com/s/753ojyvsh3vdjol/best_deeplabv3plus_mobilenet_cityscapes_os16.pth?dl=0) | [Download](https://share.weiyun.com/aSKjdpbL) 
+| DeepLabV3Plus-ResNet101   | 16      |  N/A      |  16/16   |  0.762  |    [Download](https://drive.google.com/file/d/1t7TC8mxQaFECt4jutdq_NMnWxdm6B-Nb/view?usp=sharing) | [Comming Soon]()
+
 
 好きのウェイトをダンロードもしくはカスタマイズのウェイトを```cheak_points```に入れる
 
