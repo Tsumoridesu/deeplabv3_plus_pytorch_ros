@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<launch>
+
+    <include file="$(find deeplabv3_plus_pytorch_ros)/launch/segmentation.launch"/>
+    <!-- Speed options -->
+    <arg name="max_linear"	                        default="1"/>
+    <arg name="max_angular"	                        default="2"/>
+    <arg name="danger_zone_min"	                    default="0.95"/>
+    <arg name="linear_gain"	                        default="1"/>
+    <arg name="angular_gain"	                    default="0"/>
+
+    <!-- You can change another script to control speed-->
+    <arg name="change_mode"                         default="default"/>
+
+    <!-- Publish,Subscribe topics -->
+    <arg name="zone_status_sub"	    default="/Segmentation_image/zone_status"/>
+    <arg name="cmd_vel_pub"         default="icart_mini/cmd_vel"/>
+
+    <!-- Node -->
+    <node name="segmentation_cmd_vel" pkg="deeplabv3_plus_pytorch_ros" type="segmentation_cmd_vel.py" output="screen" respawn="true">
+        <param name="max_linear"               value="$(arg max_linear)"/>
+        <param name="max_angular"                 value="$(arg max_angular)"/>
+        <param name="danger_zone_min"        value="$(arg danger_zone_min)"/>
+        <param name="linear_gain"         value="$(arg linear_gain)"/>
+        <param name="angular_gain"                  value="$(arg angular_gain)"/>
+        <param name="change_mode" value="$(arg change_mode)"/>
+        <param name="zone_status_sub"   value="$(arg zone_status_sub)"/>
+        <param name="cmd_vel_pub"       value="$(arg cmd_vel_pub)"/>
+
+    </node>
+</launch>
