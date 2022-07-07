@@ -3,12 +3,16 @@
 <launch>
 
     <include file="$(find deeplabv3_plus_pytorch_ros)/launch/segmentation.launch"/>
+    <!-- status options -->
+    <arg name="zone_status_out"                 default="True"/>
+
     <!-- Speed options -->
     <arg name="max_linear"	                        default="1"/>
     <arg name="max_angular"	                        default="2"/>
     <arg name="danger_zone_min"	                    default="0.95"/>
     <arg name="linear_gain"	                        default="1"/>
-    <arg name="angular_gain"	                    default="0"/>
+    <arg name="angular_gain"	                    default="3"/>
+    <arg name="angular_oder_gain"                   default="0.3"/>
 
     <!-- You can change another script to control speed-->
     <arg name="change_mode"                         default="default"/>
@@ -27,6 +31,7 @@
         <param name="change_mode" value="$(arg change_mode)"/>
         <param name="zone_status_sub"   value="$(arg zone_status_sub)"/>
         <param name="cmd_vel_pub"       value="$(arg cmd_vel_pub)"/>
+        <param name="angular_oder_gain" value="$(arg angular_oder_gain)"/>
 
     </node>
 </launch>
