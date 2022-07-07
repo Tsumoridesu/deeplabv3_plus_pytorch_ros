@@ -111,6 +111,18 @@ class image_segmentation:
             self.warning_zone = cv2.fillPoly(warning_mask, [points_warning], color=255)
             self.sum_warning_zone = np.sum(self.warning_zone)
 
+            # 左側探索領域
+            turnleft_order_mask = np.zeros([480, 640], np.uint8)
+            points_turnleft_order = np.array([[0, 480], [0, 360], [227, 360], [184, 480]])
+            self.turnleft_order_zone = cv2.fillPoly(turnleft_order_mask, [points_turnleft_order], color=255)
+            self.sum_turnleft_order_zone = np.sum(self.turnleft_order_zone)
+
+            # 右側探索領域
+            turnright_order_mask = np.zeros([480, 640], np.uint8)
+            points_turnright_order = np.array([[640, 480], [640, 360], [413, 360], [456, 480]])
+            self.turnright_order_zone = cv2.fillPoly(turnright_order_mask, [points_turnright_order], color=255)
+            self.sum_turnright_order_zone = np.sum(self.turnright_order_zone)
+
             rospy.loginfo("zone_status_pub True")
 
         if self.separable_conv and 'plus' in self.model_mode:
@@ -176,18 +188,59 @@ class image_segmentation:
             left_zone_img = cv2.bitwise_and(ero, ero, mask=self.left_zone)
             danger_zone_img = cv2.bitwise_and(ero, ero, mask=self.danger_zone)
             warning_zone_img = cv2.bitwise_and(ero, ero, mask=self.warning_zone)
+            turnleft_order_zone_img = cv2.bitwise_and(ero, ero, mask=self.turnleft_order_zone)
+            turnright_order_zone_img = cv2.bitwise_and(ero, ero, mask=self.turnright_order_zone)
 
             danger_zone_point = np.sum(danger_zone_img) / self.sum_danger_zone
             right_zone_point = np.sum(right_zone_img) / self.sum_right_zone
             left_zone_point = np.sum(left_zone_img) / self.sum_left_zone
             warning_zone_point = np.sum(warning_zone_img) / self.sum_warning_zone
+            turnleft_order_zone_point = np.sum(turnleft_order_zone_img) / self.sum_turnleft_order_zone
+            turnright_order_zone_point = np.sum(turnright_order_zone_img) / self.sum_turnright_order_zone
 
             msg = zone_status()
             msg.danger_zone_point = danger_zone_point
             msg.right_zone_point = right_zone_point
             msg.left_zone_point = left_zone_point
             msg.warning_zone_point = warning_zone_point
+            msg.turnleft_order_zone_point = turnleft_order_zone_point
+            msg.turnright_order_zone_point = turnright_order_zone_point
+
             self.zone_status_pub.publish(msg)
+
+            right_zone_img = right_zone_img[:, :, np.newaxis]
+            right_zone_img = right_zone_img.repeat([3], axis=2)
+            right_zone_img *= np.uint8([50, 0, 0])
+            cv2.addWeighted(colorized_preds, 1, right_zone_img, 0.3, 0, colorized_preds)
+
+            left_zone_img = left_zone_img[:, :, np.newaxis]
+            left_zone_img = left_zone_img.repeat([3], axis=2)
+            left_zone_img *= np.uint8([50, 0, 0])
+            cv2.addWeighted(colorized_preds, 1, left_zone_img, 0.3, 0, colorized_preds)
+
+            danger_zone_img = danger_zone_img[:, :, np.newaxis]
+            danger_zone_img = danger_zone_img.repeat([3], axis=2)
+            danger_zone_img *= np.uint8([0, 0, 50])
+            cv2.addWeighted(colorized_preds, 1, danger_zone_img, 0.2, 0, colorized_preds)
+
+            warning_zone_img = warning_zone_img[:, :, np.newaxis]
+            warning_zone_img = warning_zone_img.repeat([3], axis=2)
+            warning_zone_img *= np.uint8([0, 0, 50])
+            cv2.addWeighted(colorized_preds, 1, warning_zone_img, 0.5, 0, colorized_preds)
+
+            turnleft_order_zone_img = turnleft_order_zone_img[:, :, np.newaxis]
+            turnleft_order_zone_img = turnleft_order_zone_img.repeat([3], axis=2)
+            turnleft_order_zone_img *= np.uint8([50, 50, 50])
+            cv2.addWeighted(colorized_preds, 1, turnleft_order_zone_img, 0.3, 0, colorized_preds)
+
+            turnright_order_zone_img = turnright_order_zone_img[:, :, np.newaxis]
+            turnright_order_zone_img = turnright_order_zone_img.repeat([3], axis=2)
+            turnright_order_zone_img *= np.uint8([50, 50, 50])
+            cv2.addWeighted(colorized_preds, 1, turnright_order_zone_img, 0.3, 0, colorized_preds)
+
+
+
+
         try:
             self.image_pub.publish(self.bridge.cv2_to_imgmsg(colorized_preds, "bgr8"))
         except CvBridgeError as e:
