@@ -1,0 +1,7 @@
+float64 danger_zone_point
+float64 warning_zone_point
+float64 right_zone_point
+float64 left_zone_point
+float64 turnleft_order_zone_point
+float64 turnright_order_zone_point
+
