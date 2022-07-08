@@ -3,6 +3,9 @@
 
 このパッケージは、[DeepLabV3Plus-Pytorchに](https://github.com/VainF/DeepLabV3Plus-Pytorch)基づくパクってつくたROSパケージです。
 
+### add_cmd_velブランチに対しての説明を追加しています。
+
+
 ## インストール 
 このリポジトリをcatkin_wsのsrcにクローンして
 ```bash
@@ -28,7 +31,7 @@ $ roslaunch deeplabv3_plus_pytorch_ros segmentation.launch
 
 ### 3. パラメータ調整
 #### dataset:
-VOCデータセットとCityscapes２種類があります
+VOCデータセットとCityscapesの２種類があります
 
 VOCの場合：```year 2012_aug```
 
@@ -43,7 +46,7 @@ Cityscapesの場合 : ```cityscapes```
 | deeplabv3_hrnetv2_48 | deeplabv3plus_hrnetv2_48 |
 | deeplabv3_hrnetv2_32 | deeplabv3plus_hrnetv2_32 |
 
-好きのモデルを選択すればいい
+好きなモデルを選択する
 
 #### ckpt：
 | Model                   | Batch Size | FLOPs | train/val OS | mIoU  |                                               Dropbox                                                |                Tencent Weiyun                 | 
@@ -55,17 +58,58 @@ Cityscapesの場合 : ```cityscapes```
 | DeepLabV3Plus-ResNet50  |     16     | 62.7G |    16/16     | 0.772 | [Download](https://www.dropbox.com/s/dgxyd3jkyz24voa/best_deeplabv3plus_resnet50_voc_os16.pth?dl=0)  | [Download](https://share.weiyun.com/uTM4i2jG) |
 | DeepLabV3Plus-ResNet101 |     16     | 83.4G |    16/16     | 0.783 | [Download](https://www.dropbox.com/s/bm3hxe7wmakaqc5/best_deeplabv3plus_resnet101_voc_os16.pth?dl=0) | [Download](https://share.weiyun.com/UNPZr3dk) |
 
-好きのウェイトをダンロードもしくはカスタマイズのウェイトを```cheak_points```に入れる
+好きなcheck pointをダウンロードもしくはカスタマイズのcheak pointを```cheak_points```に入れる
 
 #### ほかのパラメータ：
-[本家](https://github.com/VainF/DeepLabV3Plus-Pytorch)に参照して適当に変える
+[本家](https://github.com/VainF/DeepLabV3Plus-Pytorch)を参照して適当に変える
 
 ほぼ同じだから多分大丈夫
 
-ノードと話題なら適当に変えばいい、多分
+ノードと話題なら適当に変えればいい
+
+## sementation to cmd_vel
+### Quick Start
+```
+$ roslaunch deeplabv3_plus_pytorch_ros seg2cmd.launch 
+```
+起動する時、セグメンテーションも自動的に起動する。
+### 新しいパラメータ
+```zone_status_out```：セグメンテーションのノードが区域の状態を出力するかどうか
+
+
+```zone_status_sub```：セグメンテーションのノードをpublishするtopic名
+
+
+```cmd_vel_pub```：cmd_velのtopic名
+
+
+他には速度とかの設定、気軽に変更してもよい。
+
+
+```change_mode```：これを変更すれば　```segmentation_cmd_vel.py```の中のcmd_vel変換関数を自分で書くことができる
+
+### 注意
+640x480の画像を使うので、画像サイズを変えると動かなくなる。
+
+## 今確認したのエラー
+```
+ImportError: dynamic module does not define module export function (PyInit_`cv_bridge`_boost ) 
+```
+Ubuntu 20.04以下の環境では動く時のエラーです。
+
+python３のcv_bridgeを使うと解決できる。
+
+
+
+```
+RuntimeError: Input type (torch.cuda.FloatTensor) and weight type (torch.FloatTensor) should be the same
+```
+起動する時出る可能性があるエラーです。
+
+無視してしばらく安定したら大丈夫。
 
 ## Note
-Issuesは中国語と日本語対応、英語じゃなくでもいい
+Issuesは中国語と日本語対応、英語じゃなくてもいい
 
-Ubuntu 20.04　Python3.9で動けるはず、動けない場合なら多分自力で解決するほうが早い
+Ubuntu 20.04　Python3.9で動作確認済み、動かない場合は多分自力で解決するほうが早い
 

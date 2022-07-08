@@ -3,8 +3,6 @@
 <launch>
 
     <include file="$(find deeplabv3_plus_pytorch_ros)/launch/segmentation.launch"/>
-    <!-- status options -->
-    <arg name="zone_status_out"                 default="True"/>
 
     <!-- Speed options -->
     <arg name="max_linear"	                        default="1"/>
@@ -32,6 +30,5 @@
         <param name="zone_status_sub"               value="$(arg zone_status_sub)"/>
         <param name="cmd_vel_pub"                   value="$(arg cmd_vel_pub)"/>
         <param name="angular_oder_gain"             value="$(arg angular_oder_gain)"/>
-
     </node>
 </launch>
