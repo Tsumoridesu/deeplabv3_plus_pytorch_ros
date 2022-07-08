@@ -19,6 +19,7 @@ from deeplabv3_plus_pytorch_ros.msg import zone_status
 import network
 import utils
 from datasets import VOCSegmentation, Cityscapes, cityscapes
+from std_srvs.srv import SetBool, SetBoolResponse
 
 
 class image_segmentation:
@@ -67,6 +68,14 @@ class image_segmentation:
 
         self.image_sub_topic = rospy.get_param('~image_subscribe_topic', '/camera/image_raw')
         self.image_sub = rospy.Subscriber(self.image_sub_topic, Image, self.segmentation)
+
+        self.real_time_mode = rospy.get_param('~real_time_mode', True)
+        rospy.loginfo("Real time mode: %s" % self.real_time_mode)
+
+        self.break_service_name = rospy.get_param('~break_service_name', 'break_service')
+        self.break_service = rospy.Service(self.break_service_name, SetBool, self.break_service_callback)
+
+        self.break_service_flag = False
 
         # Predict options
         if self.dataset.lower() == 'voc':
@@ -144,6 +153,9 @@ class image_segmentation:
         with torch.no_grad():
             self.model = self.model.eval()
 
+    def break_service_callback(self, req):
+        self.break_service_flag = req.data
+
     def segmentation(self, data):
         if self.crop_val:
             T.Compose([
@@ -165,11 +177,16 @@ class image_segmentation:
         except CvBridgeError as e:
             print(e)
 
-        cv_image = transform(cv_image).unsqueeze(0).to(self.device)
-        pred = self.model(cv_image)
-        pred = pred.max(1)[1].cpu().numpy()[0]
-        colorized_preds = self.decode_fn(pred).astype('uint8')
-        colorized_preds = cv2.cvtColor(np.asarray(colorized_preds), cv2.COLOR_RGB2BGR)
+        if self.break_service_flag is False and self.real_time_mode is False:
+            colorized_preds = cv_image
+            colorized_preds = cv2.cvtColor(np.asarray(colorized_preds), cv2.COLOR_RGB2BGR)
+        else:
+            cv_image = transform(cv_image).unsqueeze(0).to(self.device)
+            pred = self.model(cv_image)
+            pred = pred.max(1)[1].cpu().numpy()[0]
+            colorized_preds = self.decode_fn(pred).astype('uint8')
+            colorized_preds = cv2.cvtColor(np.asarray(colorized_preds), cv2.COLOR_RGB2BGR)
+
 
         if self.zone_status_out:
             # 通行可能領域抽出
@@ -237,9 +254,6 @@ class image_segmentation:
             turnright_order_zone_img = turnright_order_zone_img.repeat([3], axis=2)
             turnright_order_zone_img *= np.uint8([50, 50, 50])
             cv2.addWeighted(colorized_preds, 1, turnright_order_zone_img, 0.3, 0, colorized_preds)
-
-
-
 
         try:
             self.image_pub.publish(self.bridge.cv2_to_imgmsg(colorized_preds, "bgr8"))

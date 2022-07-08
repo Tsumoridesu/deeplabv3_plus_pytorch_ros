@@ -6,7 +6,9 @@
     <arg name="separable_conv"	            default="False"/>
     <arg name="output_stride"	            default="16"/>
     <arg name="ckpt"	                    default="$(find deeplabv3_plus_pytorch_ros)/cheak_points/best_deeplabv3plus_mobilenet_cityscapes_os16.pth"/>
-    <arg name="zone_status_out"                 default="True"/>
+    <arg name="zone_status_out"             default="True"/>
+    <arg name="real_time_mode"              default="True"/>
+    <arg name="break_service_name"          default="break_service"/>
 
     <!-- Publish,Subscribe topics -->
     <arg name="image_subscribe_topic"	    default="/camera/image_raw"/>
@@ -22,6 +24,8 @@
         <param name="image_subscribe_topic" value="$(arg image_subscribe_topic)"/>
         <param name="image_publish_topic"   value="$(arg image_publish_topic)"/>
         <param name="zone_status_out"       value="$(arg zone_status_out)"/>
+        <param name="real_time_mode"        value="$(arg real_time_mode)"/>
+        <param name="break_service_name"    value="$(arg break_service_name)"/>
 
     </node>
 </launch>
