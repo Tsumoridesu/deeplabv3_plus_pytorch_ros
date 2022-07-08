@@ -7,7 +7,7 @@
     <arg name="output_stride"	            default="16"/>
     <arg name="ckpt"	                    default="$(find deeplabv3_plus_pytorch_ros)/cheak_points/best_deeplabv3plus_mobilenet_cityscapes_os16.pth"/>
     <arg name="zone_status_out"             default="True"/>
-    <arg name="real_time_mode"              default="True"/>
+    <arg name="real_time_mode"              default="False"/>
     <arg name="break_service_name"          default="break_service"/>
 
     <!-- Publish,Subscribe topics -->

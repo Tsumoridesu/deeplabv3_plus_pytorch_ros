@@ -72,6 +72,8 @@ class image_segmentation:
         self.real_time_mode = rospy.get_param('~real_time_mode', True)
         rospy.loginfo("Real time mode: %s" % self.real_time_mode)
 
+        self.zone_status_out = rospy.get_param('~zone_status_out', False)
+
         self.break_service_name = rospy.get_param('~break_service_name', 'break_service')
         self.break_service = rospy.Service(self.break_service_name, SetBool, self.break_service_callback)
 
@@ -93,7 +95,6 @@ class image_segmentation:
         self.model = network.modeling.__dict__[self.model_mode](num_classes=self.num_classes,
                                                                 output_stride=self.output_stride)
 
-        self.zone_status_out = rospy.get_param('~zone_status_out', False)
 
         if self.zone_status_out:
             # 左側
@@ -153,8 +154,7 @@ class image_segmentation:
         with torch.no_grad():
             self.model = self.model.eval()
 
-    def break_service_callback(self, req):
-        self.break_service_flag = req.data
+
 
     def segmentation(self, data):
         if self.crop_val:
@@ -187,8 +187,7 @@ class image_segmentation:
             colorized_preds = self.decode_fn(pred).astype('uint8')
             colorized_preds = cv2.cvtColor(np.asarray(colorized_preds), cv2.COLOR_RGB2BGR)
 
-
-        if self.zone_status_out:
+        if self.zone_status_out and self.break_service_flag:
             # 通行可能領域抽出
             road_rgb = np.array([128, 64, 128])
             mask = cv2.inRange(colorized_preds, lowerb=road_rgb, upperb=road_rgb)
@@ -260,6 +259,8 @@ class image_segmentation:
         except CvBridgeError as e:
             print(e)
 
+    def break_service_callback(self, req):
+        self.break_service_flag = req.data
 
 if __name__ == '__main__':
     try:
