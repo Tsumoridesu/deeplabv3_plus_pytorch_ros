@@ -20,6 +20,7 @@ import network
 import utils
 from datasets import VOCSegmentation, Cityscapes, cityscapes
 from std_srvs.srv import SetBool, SetBoolResponse
+from std_msgs.msg import Float32
 
 
 class image_segmentation:
@@ -74,10 +75,22 @@ class image_segmentation:
 
         self.zone_status_out = rospy.get_param('~zone_status_out', False)
 
-        self.break_service_name = rospy.get_param('~break_service_name', 'break_service')
-        self.break_service = rospy.Service(self.break_service_name, SetBool, self.break_service_callback)
+        # Change topics
+        self.alpha_topic = rospy.get_param("~alpha_topic", '/alpha')
+        self.threshold_sub = rospy.Subscriber(self.alpha_topic, Float32, self.thresholdCallback)
+        self.threshold_value = rospy.get_param('threshold_value', 0.0)
+        rospy.loginfo("threshold value :%s" % self.threshold_value)
 
-        self.break_service_flag = False
+        self.change_flag_srv_name = rospy.get_param('~change_flag_srv', 'switch_segmentation')
+        self.change_flag_srv = rospy.Service(self.change_flag_srv_name, SetBool, self.callback_change_mode)
+
+        self.change_mode_flag_init = rospy.get_param('~change_mode_flag_init', True)
+        rospy.loginfo("change_mode_flag_init: %s" % self.change_mode_flag_init)
+        self.change_threshold_flag_init = rospy.get_param('~change_threshold_flag_init', False)
+        rospy.loginfo("change_threshold_flag_init: %s" % self.change_threshold_flag_init)
+
+        self.change_mode_flag = self.change_mode_flag_init
+        self.change_threshold_flag = self.change_threshold_flag_init
 
         # Predict options
         if self.dataset.lower() == 'voc':
@@ -94,7 +107,6 @@ class image_segmentation:
         # Set up model (all models are 'constructed at network.modeling)
         self.model = network.modeling.__dict__[self.model_mode](num_classes=self.num_classes,
                                                                 output_stride=self.output_stride)
-
 
         if self.zone_status_out:
             # 左側
@@ -154,8 +166,6 @@ class image_segmentation:
         with torch.no_grad():
             self.model = self.model.eval()
 
-
-
     def segmentation(self, data):
         if self.crop_val:
             T.Compose([
@@ -177,9 +187,9 @@ class image_segmentation:
         except CvBridgeError as e:
             print(e)
 
-        if self.break_service_flag is False and self.real_time_mode is False:
+        if self.change_mode_flag is False or self.change_threshold_flag is False:
             colorized_preds = cv_image
-            colorized_preds = cv2.cvtColor(np.asarray(colorized_preds), cv2.COLOR_RGB2BGR)
+            # colorized_preds = cv2.cvtColor(np.asarray(colorized_preds), cv2.COLOR_RGB2BGR)
         else:
             cv_image = transform(cv_image).unsqueeze(0).to(self.device)
             pred = self.model(cv_image)
@@ -187,80 +197,91 @@ class image_segmentation:
             colorized_preds = self.decode_fn(pred).astype('uint8')
             colorized_preds = cv2.cvtColor(np.asarray(colorized_preds), cv2.COLOR_RGB2BGR)
 
-        if self.zone_status_out and self.break_service_flag:
-            # 通行可能領域抽出
-            road_rgb = np.array([128, 64, 128])
-            mask = cv2.inRange(colorized_preds, lowerb=road_rgb, upperb=road_rgb)
+            if self.zone_status_out:
+                # 通行可能領域抽出
+                road_rgb = np.array([128, 64, 128])
+                mask = cv2.inRange(colorized_preds, lowerb=road_rgb, upperb=road_rgb)
 
-            # ノイズ消去
-            kel_dil = np.ones((17, 17), np.uint8)
-            kel_ero = np.ones((17, 17), np.uint8)
-            # 膨張
-            dil = cv2.dilate(mask, kel_dil)
-            # 腐食
-            ero = cv2.erode(dil, kel_ero)
+                # ノイズ消去
+                kel_dil = np.ones((17, 17), np.uint8)
+                kel_ero = np.ones((17, 17), np.uint8)
+                # 膨張
+                dil = cv2.dilate(mask, kel_dil)
+                # 腐食
+                ero = cv2.erode(dil, kel_ero)
 
-            right_zone_img = cv2.bitwise_and(ero, ero, mask=self.right_zone)
-            left_zone_img = cv2.bitwise_and(ero, ero, mask=self.left_zone)
-            danger_zone_img = cv2.bitwise_and(ero, ero, mask=self.danger_zone)
-            warning_zone_img = cv2.bitwise_and(ero, ero, mask=self.warning_zone)
-            turnleft_order_zone_img = cv2.bitwise_and(ero, ero, mask=self.turnleft_order_zone)
-            turnright_order_zone_img = cv2.bitwise_and(ero, ero, mask=self.turnright_order_zone)
+                right_zone_img = cv2.bitwise_and(ero, ero, mask=self.right_zone)
+                left_zone_img = cv2.bitwise_and(ero, ero, mask=self.left_zone)
+                danger_zone_img = cv2.bitwise_and(ero, ero, mask=self.danger_zone)
+                warning_zone_img = cv2.bitwise_and(ero, ero, mask=self.warning_zone)
+                turnleft_order_zone_img = cv2.bitwise_and(ero, ero, mask=self.turnleft_order_zone)
+                turnright_order_zone_img = cv2.bitwise_and(ero, ero, mask=self.turnright_order_zone)
 
-            danger_zone_point = np.sum(danger_zone_img) / self.sum_danger_zone
-            right_zone_point = np.sum(right_zone_img) / self.sum_right_zone
-            left_zone_point = np.sum(left_zone_img) / self.sum_left_zone
-            warning_zone_point = np.sum(warning_zone_img) / self.sum_warning_zone
-            turnleft_order_zone_point = np.sum(turnleft_order_zone_img) / self.sum_turnleft_order_zone
-            turnright_order_zone_point = np.sum(turnright_order_zone_img) / self.sum_turnright_order_zone
+                danger_zone_point = np.sum(danger_zone_img) / self.sum_danger_zone
+                right_zone_point = np.sum(right_zone_img) / self.sum_right_zone
+                left_zone_point = np.sum(left_zone_img) / self.sum_left_zone
+                warning_zone_point = np.sum(warning_zone_img) / self.sum_warning_zone
+                turnleft_order_zone_point = np.sum(turnleft_order_zone_img) / self.sum_turnleft_order_zone
+                turnright_order_zone_point = np.sum(turnright_order_zone_img) / self.sum_turnright_order_zone
 
-            msg = zone_status()
-            msg.danger_zone_point = danger_zone_point
-            msg.right_zone_point = right_zone_point
-            msg.left_zone_point = left_zone_point
-            msg.warning_zone_point = warning_zone_point
-            msg.turnleft_order_zone_point = turnleft_order_zone_point
-            msg.turnright_order_zone_point = turnright_order_zone_point
+                msg = zone_status()
+                msg.danger_zone_point = danger_zone_point
+                msg.right_zone_point = right_zone_point
+                msg.left_zone_point = left_zone_point
+                msg.warning_zone_point = warning_zone_point
+                msg.turnleft_order_zone_point = turnleft_order_zone_point
+                msg.turnright_order_zone_point = turnright_order_zone_point
 
-            self.zone_status_pub.publish(msg)
+                self.zone_status_pub.publish(msg)
 
-            right_zone_img = right_zone_img[:, :, np.newaxis]
-            right_zone_img = right_zone_img.repeat([3], axis=2)
-            right_zone_img *= np.uint8([50, 0, 0])
-            cv2.addWeighted(colorized_preds, 1, right_zone_img, 0.3, 0, colorized_preds)
+            # right_zone_img = right_zone_img[:, :, np.newaxis]
+            # right_zone_img = right_zone_img.repeat([3], axis=2)
+            # right_zone_img *= np.uint8([50, 0, 0])
+            # cv2.addWeighted(colorized_preds, 1, right_zone_img, 0.3, 0, colorized_preds)
 
-            left_zone_img = left_zone_img[:, :, np.newaxis]
-            left_zone_img = left_zone_img.repeat([3], axis=2)
-            left_zone_img *= np.uint8([50, 0, 0])
-            cv2.addWeighted(colorized_preds, 1, left_zone_img, 0.3, 0, colorized_preds)
+            # left_zone_img = left_zone_img[:, :, np.newaxis]
+            # left_zone_img = left_zone_img.repeat([3], axis=2)
+            # left_zone_img *= np.uint8([50, 0, 0])
+            # cv2.addWeighted(colorized_preds, 1, left_zone_img, 0.3, 0, colorized_preds)
 
-            danger_zone_img = danger_zone_img[:, :, np.newaxis]
-            danger_zone_img = danger_zone_img.repeat([3], axis=2)
-            danger_zone_img *= np.uint8([0, 0, 50])
-            cv2.addWeighted(colorized_preds, 1, danger_zone_img, 0.2, 0, colorized_preds)
+            # danger_zone_img = danger_zone_img[:, :, np.newaxis]
+            # danger_zone_img = danger_zone_img.repeat([3], axis=2)
+            # danger_zone_img *= np.uint8([0, 0, 50])
+            # cv2.addWeighted(colorized_preds, 1, danger_zone_img, 0.2, 0, colorized_preds)
 
-            warning_zone_img = warning_zone_img[:, :, np.newaxis]
-            warning_zone_img = warning_zone_img.repeat([3], axis=2)
-            warning_zone_img *= np.uint8([0, 0, 50])
-            cv2.addWeighted(colorized_preds, 1, warning_zone_img, 0.5, 0, colorized_preds)
+            # warning_zone_img = warning_zone_img[:, :, np.newaxis]
+            # warning_zone_img = warning_zone_img.repeat([3], axis=2)
+            # warning_zone_img *= np.uint8([0, 0, 50])
+            # cv2.addWeighted(colorized_preds, 1, warning_zone_img, 0.5, 0, colorized_preds)
 
-            turnleft_order_zone_img = turnleft_order_zone_img[:, :, np.newaxis]
-            turnleft_order_zone_img = turnleft_order_zone_img.repeat([3], axis=2)
-            turnleft_order_zone_img *= np.uint8([50, 50, 50])
-            cv2.addWeighted(colorized_preds, 1, turnleft_order_zone_img, 0.3, 0, colorized_preds)
+            # turnleft_order_zone_img = turnleft_order_zone_img[:, :, np.newaxis]
+            # turnleft_order_zone_img = turnleft_order_zone_img.repeat([3], axis=2)
+            # turnleft_order_zone_img *= np.uint8([50, 50, 50])
+            # cv2.addWeighted(colorized_preds, 1, turnleft_order_zone_img, 0.3, 0, colorized_preds)
 
-            turnright_order_zone_img = turnright_order_zone_img[:, :, np.newaxis]
-            turnright_order_zone_img = turnright_order_zone_img.repeat([3], axis=2)
-            turnright_order_zone_img *= np.uint8([50, 50, 50])
-            cv2.addWeighted(colorized_preds, 1, turnright_order_zone_img, 0.3, 0, colorized_preds)
+            # turnright_order_zone_img = turnright_order_zone_img[:, :, np.newaxis]
+            # turnright_order_zone_img = turnright_order_zone_img.repeat([3], axis=2)
+            # turnright_order_zone_img *= np.uint8([50, 50, 50])
+            # cv2.addWeighted(colorized_preds, 1, turnright_order_zone_img, 0.3, 0, colorized_preds)
 
         try:
             self.image_pub.publish(self.bridge.cv2_to_imgmsg(colorized_preds, "bgr8"))
         except CvBridgeError as e:
             print(e)
 
-    def break_service_callback(self, req):
-        self.break_service_flag = req.data
+    def thresholdCallback(self, data):
+        if data.data <= self.threshold_value:
+            self.change_threshold_flag = True
+        else:
+            self.change_threshold_flag = False
+
+    def callback_change_mode(self, req):
+        resp = SetBoolResponse()
+        self.change_mode_flag = req.data
+        resp.message = "change_mode: " + str(self.learning)
+        resp.success = True
+        return resp
+
 
 if __name__ == '__main__':
     try:

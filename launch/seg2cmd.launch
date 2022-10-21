@@ -1,16 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <launch>
-
+    <!-- Segmentation launch -->
     <include file="$(find deeplabv3_plus_pytorch_ros)/launch/segmentation.launch"/>
+
+    <!-- Camera nade launch -->
+    <include file="$(find usb_cam)/launch/usb_cam-test.launch"/>
 
     <!-- Speed options -->
     <arg name="max_linear"	                        default="1"/>
     <arg name="max_angular"	                        default="2"/>
-    <arg name="danger_zone_min"	                    default="0.95"/>
-    <arg name="linear_gain"	                        default="1"/>
+    <arg name="danger_zone_min"	                    default="0.98"/>
+    <arg name="linear_gain"	                        default="1.5"/>
     <arg name="angular_gain"	                    default="3"/>
-    <arg name="angular_oder_gain"                   default="0.3"/>
+    <arg name="angular_oder_gain"                   default="3"/>
 
     <!-- You can change another script to control speed-->
     <arg name="change_mode"                         default="default"/>

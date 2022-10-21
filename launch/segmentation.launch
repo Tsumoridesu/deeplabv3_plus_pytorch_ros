@@ -1,17 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-    <!-- deeplabv3_plus_pytorch Options -->
+    <!-- Deeplabv3_plus_pytorch Options -->
     <arg name="dataset"	                    default="cityscapes"/>
     <arg name="model"	                    default="deeplabv3plus_mobilenet"/>
     <arg name="separable_conv"	            default="False"/>
     <arg name="output_stride"	            default="16"/>
     <arg name="ckpt"	                    default="$(find deeplabv3_plus_pytorch_ros)/cheak_points/best_deeplabv3plus_mobilenet_cityscapes_os16.pth"/>
+
+    <!-- Mode-change parameter -->
     <arg name="zone_status_out"             default="True"/>
-    <arg name="real_time_mode"              default="False"/>
-    <arg name="break_service_name"          default="break_service"/>
+    <arg name="real_time_mode"              default="True"/>
+    <arg name="change_flag_srv_name"        default="switch_segmentation"/>
+    <arg name="threshold_value"             default="0.1"/>
+    <arg name="change_mode_flag_init"       default="True"/>
+    <arg name="change_threshold_flag_init"  default="False"/>
 
     <!-- Publish,Subscribe topics -->
-    <arg name="image_subscribe_topic"	    default="/camera/image_raw"/>
+    <arg name="image_subscribe_topic"	    default="/usb_cam/image_raw"/>
     <arg name="image_publish_topic"         default="Segmentation_image"/>
 
     <!-- Node -->
@@ -25,7 +30,10 @@
         <param name="image_publish_topic"   value="$(arg image_publish_topic)"/>
         <param name="zone_status_out"       value="$(arg zone_status_out)"/>
         <param name="real_time_mode"        value="$(arg real_time_mode)"/>
-        <param name="break_service_name"    value="$(arg break_service_name)"/>
+        <param name="change_flag_srv_name"    value="$(arg change_flag_srv_name)"/>
+        <param name="threshold_value"       value="$(arg threshold_value)"/>
+        <param name="change_mode_flag_init" value="$(arg change_mode_flag_init)"/>
+        <param name="change_threshold_flag_init" value="$(arg change_threshold_flag_init)"/>
 
     </node>
 </launch>

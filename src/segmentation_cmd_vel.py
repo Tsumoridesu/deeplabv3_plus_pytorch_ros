@@ -28,24 +28,40 @@ class segmentation_cmd_vel:
         self.cmd_vel_pub_topic = rospy.get_param('~cmd_vel_pub', 'icart_mini/cmd_vel')
         self.cmd_vel_pub = rospy.Publisher(self.cmd_vel_pub_topic, Twist, queue_size=10)
 
+        self.j = 0
+
     def state2cmd(self, data):
         msg = Twist()
         # print(data)
         if self.change_mode == "default":
             if data.danger_zone_point > self.danger_zone_min:
+                self.j = 0
                 msg.linear.x = data.warning_zone_point * self.linear_gain * self.max_linear
                 for i in range(10):
                     turn_tootle = 0
                     turn = data.left_zone_point - data.right_zone_point
                     turn_tootle += turn
-                msg.angular.z = turn_tootle * self.angular_gain * self.max_angular
+                msg.angular.z = (turn_tootle * self.angular_gain * self.max_angular) + (
+                            data.turnleft_order_zone_point - data.turnright_order_zone_point) * 0.1 * self.max_angular
 
             else:
-                msg.linear.x = -0.1
-                msg.angular.z = (data.turnleft_order_zone_point - data.turnright_order_zone_point) * self.angular_gain * self.max_angular
+                msg.linear.x = 0
+                self.j += 1
+                if 100 < self.j < 250:
+                    msg.angular.z = 0.2 * self.max_angular
+                elif self.j > 200:
+                    for self.j in range(250, -250):
+                        msg.angular.z = 0.2 * -self.max_angular
 
+                else:
+                    for i in range(10):
+                        turn_tootle = 0
+                        turn = data.turnleft_order_zone_point - data.turnright_order_zone_point
+                        turn_tootle += turn
+                    msg.angular.z = (turn_tootle * self.angulau_oder_gain * self.max_angular) + (
+                                data.left_zone_point - data.right_zone_point) * self.angular_gain * self.max_angular * 0.1
 
-
+                print(self.j)
             self.cmd_vel_pub.publish(msg)
 
         else:
